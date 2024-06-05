@@ -27,7 +27,7 @@ func WrapForRetry(f any, params ...any) (func() error, error) {
 	}, nil
 }
 
-func Retry(attempts int, t time.Duration, f func() error) error {
+func Do(attempts int, t time.Duration, f func() error) error {
 
 	for i := 0; i < attempts; i++ {
 		err := f()
@@ -60,7 +60,7 @@ func WrapWithCtx(f any, params ...any) (func(context.Context) error, error) {
 	}, nil
 }
 
-func WithCtx(t time.Duration, f func(context.Context) error) error {
+func DoCtx(t time.Duration, f func(context.Context) error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), t)
 	defer cancel()
 
