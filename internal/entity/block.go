@@ -13,3 +13,7 @@ type Block struct {
 	fee  uint32
 	size uint32
 }
+
+func (b *Block) Reset() {
+	*b = Block{}
+}

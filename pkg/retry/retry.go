@@ -3,7 +3,6 @@ package retry
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"time"
 )
@@ -34,7 +33,6 @@ func Do(attempts int, t time.Duration, f func() error) error {
 		if err == nil {
 			return nil
 		}
-		fmt.Printf("retry err : %s \n", err)
 		<-time.After(t)
 	}
 

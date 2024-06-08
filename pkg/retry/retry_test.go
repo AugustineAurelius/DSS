@@ -14,7 +14,7 @@ type tS struct {
 }
 
 func TestRetry(t *testing.T) {
-	testStruct := &tS{"VAsiliy"}
+	testStruct := &tS{"Biba"}
 	stringParam := "123"
 	floatParam := 123.0
 
@@ -26,7 +26,10 @@ func TestRetry(t *testing.T) {
 		if amount != floatParam {
 			t.Error("float param is not equal", amount, floatParam)
 		}
-		fmt.Println(ts)
+
+		if ts.Name != "Biba" {
+			t.Error("name is not equal")
+		}
 
 		if rand.Intn(3) > 1 {
 			return nil

@@ -3,7 +3,6 @@ package merkletree
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"testing"
 )
 
@@ -23,7 +22,11 @@ func TestTree2(t *testing.T) {
 	dst := make([]byte, 64)
 	hex.Encode(dst, res[:])
 
-	fmt.Println(string(dst))
+	expected := "964348c9a9891b3d04b32541517e113a181fc70dd1c0b89858539192790b6a43"
+
+	if string(dst) != expected {
+		t.Error("result is not equal with expected")
+	}
 
 }
 

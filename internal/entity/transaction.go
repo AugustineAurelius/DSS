@@ -31,3 +31,7 @@ type SignedTransaction struct {
 
 	Signature []byte //sender public address is hashed by his private key
 }
+
+func (t *Transaction) Reset() {
+	*t = Transaction{}
+}
