@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/AugustineAurelius/DSS/config"
+	"github.com/AugustineAurelius/DSS/pkg/codec"
 )
 
 type Node struct {
@@ -36,8 +38,7 @@ func (n *Node) Serve() error {
 
 	n.listener = l
 
-	//TODO start accept conns
-
+	go n.acceptLoop()
 	return nil
 }
 
@@ -51,10 +52,54 @@ func (n *Node) acceptLoop() {
 			continue
 		}
 
-		// var ping [2]byte
-		// codec.Ping(ping)
-		// conn.Write(ping[:])
+		fmt.Println("conn", conn)
+		var b [2]byte
+
+		codec.Ping(&b)
+		_, err = conn.Write(b[:])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		pong := make([]byte, 2)
+		_, err = conn.Read(pong)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("server get  pong", codec.Pong(pong))
 
 	}
 
+}
+
+func (n *Node) dial(port string) {
+
+	con, err := net.Dial(config.DefaultConfig.Network, port)
+	if err != nil {
+		return
+	}
+
+	ping := make([]byte, 2)
+	_, err = con.Read(ping)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	fmt.Println("client got ping", codec.Pong(ping))
+
+	var b [2]byte
+	codec.Ping(&b)
+	_, err = con.Write(b[:])
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	time.Sleep(time.Second)
 }
