@@ -14,9 +14,7 @@ func TestPingPong(t *testing.T) {
 		return
 	}
 
-	n2 := Node{
-		port: ":4001",
-	}
+	n2 := Node{}
 
 	n2.dial(":4001")
 
