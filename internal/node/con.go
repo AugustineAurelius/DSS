@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/AugustineAurelius/DSS/config"
-	"github.com/AugustineAurelius/DSS/pkg/codec"
 )
 
 type Node struct {
@@ -52,24 +51,10 @@ func (n *Node) acceptLoop() {
 			continue
 		}
 
-		fmt.Println("conn", conn)
-		var b [2]byte
-
-		codec.Ping(&b)
-		_, err = conn.Write(b[:])
+		err = n.defaultHandshake(conn)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
-
-		pong := make([]byte, 2)
-		_, err = conn.Read(pong)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		fmt.Println("server get  pong", codec.Pong(pong))
 
 	}
 
@@ -77,27 +62,13 @@ func (n *Node) acceptLoop() {
 
 func (n *Node) dial(port string) {
 
-	con, err := net.Dial(config.DefaultConfig.Network, port)
+	conn, err := net.Dial(config.DefaultConfig.Network, port)
 	if err != nil {
 		return
 	}
 
-	ping := make([]byte, 2)
-	_, err = con.Read(ping)
+	n.defaultDial(conn)
 	if err != nil {
-		fmt.Println(err)
-
-		return
-	}
-
-	fmt.Println("client got ping", codec.Pong(ping))
-
-	var b [2]byte
-	codec.Ping(&b)
-	_, err = con.Write(b[:])
-	if err != nil {
-		fmt.Println(err)
-
 		return
 	}
 
