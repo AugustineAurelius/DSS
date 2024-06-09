@@ -64,14 +64,13 @@ func (n *Node) defaultECDHHandshake(c net.Conn) error {
 		return err
 	}
 
-	dialerPub := ecdh.MustPublicKeyFromBytes(&pubBytes)
-
-	secret, _ := privateKey.ECDH(dialerPub)
+	secret := ecdh.MustEDCH(privateKey, &pubBytes)
 
 	_, err = c.Write(secret)
 	if err != nil {
 		return err
 	}
+
 	var remSecret [32]byte
 	_, err = c.Read(remSecret[:])
 	if err != nil {
@@ -102,9 +101,7 @@ func (n *Node) defaultECDHDial(c net.Conn) error {
 		return err
 	}
 
-	listenerPub := ecdh.MustPublicKeyFromBytes(&pubBytes)
-
-	secret, _ := privateKey.ECDH(listenerPub)
+	secret := ecdh.MustEDCH(privateKey, &pubBytes)
 
 	var remSecret [32]byte
 	_, err = c.Read(remSecret[:])

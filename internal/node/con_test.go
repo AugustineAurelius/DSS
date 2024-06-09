@@ -16,6 +16,10 @@ func TestPingPong(t *testing.T) {
 
 	n2 := Node{}
 
-	n2.dial(":4001")
+	err = n2.dial(":4001")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 }

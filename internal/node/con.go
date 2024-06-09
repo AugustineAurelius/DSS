@@ -19,7 +19,7 @@ type Node struct {
 
 	listener net.Listener
 
-	remoteNodes []Node
+	remoteNodes []Peer
 	connections []net.Conn
 }
 
@@ -60,17 +60,18 @@ func (n *Node) acceptLoop() {
 
 }
 
-func (n *Node) dial(port string) {
+func (n *Node) dial(port string) error {
 
 	conn, err := net.Dial(config.DefaultConfig.Network, port)
 	if err != nil {
-		return
+		return err
 	}
 
 	err = n.defaultECDHDial(conn)
 	if err != nil {
-		return
+		return er
 	}
 
 	time.Sleep(time.Second)
+	return nil
 }
