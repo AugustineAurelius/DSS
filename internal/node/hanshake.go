@@ -11,29 +11,8 @@ import (
 
 type handshakeFunc = func(c net.Conn) error
 
-func (n *Node) defaultECDHHandshake(c net.Conn) error {
+func (n *Node) handshake(c net.Conn) error {
 
-	peer := &Peer{}
-
-	err := n.keyExchange(c, peer)
-	if err != nil {
-		return err
-	}
-
-	err = n.idExchange(c, peer)
-	if err != nil {
-		return err
-	}
-
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	peer.con = c
-	n.remoteNodes = append(n.remoteNodes, *peer)
-
-	return nil
-}
-
-func (n *Node) defaultECDHDial(c net.Conn) error {
 	peer := &Peer{}
 
 	err := n.keyExchange(c, peer)

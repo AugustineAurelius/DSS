@@ -54,7 +54,7 @@ func (n *Node) acceptLoop() {
 			return err
 		}
 
-		err = n.defaultECDHHandshake(conn)
+		err = n.handshake(conn)
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ func (n *Node) dial(port string) error {
 		return err
 	}
 
-	err = n.defaultECDHDial(conn)
+	err = n.handshake(conn)
 	if err != nil {
 		return err
 	}
