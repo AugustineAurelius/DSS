@@ -99,6 +99,7 @@ func (n *Node) idExchange(c net.Conn, p *Peer) error {
 	if err != nil {
 		return err
 	}
+
 	p.ID = remoteId
 
 	return nil

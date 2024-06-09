@@ -1,7 +1,8 @@
 package node
 
 import (
-	"errors"
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"sync"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/AugustineAurelius/DSS/config"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
+	merkletree "github.com/AugustineAurelius/DSS/pkg/merkle_tree"
 	"github.com/AugustineAurelius/DSS/pkg/retry"
 	"github.com/AugustineAurelius/DSS/pkg/uuid"
 )
@@ -106,6 +108,8 @@ func (n *Node) pingOne(c net.Conn) error {
 		return err
 	}
 
+	n.sendHashes()
+
 	return nil
 
 }
@@ -136,12 +140,12 @@ func (n *Node) handle(c net.Conn) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	c.SetWriteDeadline(time.Now().Add(time.Second))
-
 	res := codec.Decode(b[:])
 
 	switch res {
 	case Ping:
+		c.SetWriteDeadline(time.Now().Add(time.Second))
+
 		codec.Encode(&b, Pong)
 		_, err = c.Write(b[:])
 		if err != nil {
@@ -156,7 +160,28 @@ func (n *Node) handle(c net.Conn) error {
 		return nil
 
 	default:
-		return errors.New("some err")
+		tmp := make([]byte, res)
+
+		_, err := c.Read(tmp)
+		if err != nil {
+			fmt.Println(err)
+			return err
+
+		}
+
+		hexByte := make([]byte, res/2)
+
+		hex.Decode(hexByte, tmp)
+
+		var rootHash [32]byte
+		merkletree.MerkleTree32(&rootHash, bytes.NewBuffer(hexByte))
+
+		dst := make([]byte, 64)
+		hex.Encode(dst, rootHash[:])
+
+		fmt.Println(string(dst))
+
+		return nil
 	}
 
 }
@@ -169,4 +194,16 @@ func (n *Node) removePeer(index int) {
 
 	n.remoteNodes = append(n.remoteNodes[:index], n.remoteNodes[index+1:]...)
 
+}
+
+func (n *Node) sendHashes() {
+	testHashes := "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+
+	var we []byte
+	var tm [2]byte
+	codec.Encode(&tm, 256)
+	we = append(we, tm[:]...)
+	we = append(we, []byte(testHashes)...)
+
+	n.remoteNodes[0].con.Write(we)
 }

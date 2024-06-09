@@ -25,19 +25,6 @@ func TestPingPong(t *testing.T) {
 		return
 	}
 
-	// n3 := New()
-	// err = n3.dial(":4001")
-	// if err != nil {
-	// 	t.Error(err)
-	// 	return
-	// }
-	//
-	// err = n3.dial(":4002")
-	// if err != nil {
-	// 	t.Error(err)
-	// 	return
-	// }
-
 	time.Sleep(time.Second * 10)
 
 }
