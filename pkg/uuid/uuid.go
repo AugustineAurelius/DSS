@@ -1,6 +1,8 @@
 package uuid
 
-import "crypto/rand"
+import (
+	"crypto/rand"
+)
 
 func New() [16]byte {
 	var buf [16]byte
