@@ -9,6 +9,7 @@ import (
 
 	"github.com/AugustineAurelius/DSS/config"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
+	"github.com/AugustineAurelius/DSS/pkg/retry"
 	"github.com/AugustineAurelius/DSS/pkg/uuid"
 )
 
@@ -45,23 +46,22 @@ func (n *Node) Serve() error {
 }
 
 func (n *Node) acceptLoop() {
-	for {
-
+	retry.Loop(func() error {
 		conn, err := n.listener.Accept()
 		if err != nil {
 			fmt.Printf("TCP accept error: %s\n", err)
 			conn.Close()
-			continue
+			return err
 		}
 
 		err = n.defaultECDHHandshake(conn)
 		if err != nil {
-			return
+			return err
 		}
-		go n.ponger(conn)
+		go n.listen(conn)
+		return nil
 
-	}
-
+	}, time.Millisecond)
 }
 
 func (n *Node) dial(port string) error {
@@ -75,38 +75,32 @@ func (n *Node) dial(port string) error {
 	if err != nil {
 		return err
 	}
-	go n.ponger(conn)
-	go n.pinger()
+	go n.listen(conn)
 
 	return nil
 }
 
 func (n *Node) pinger() {
-
-	for {
-
-		<-time.After(time.Millisecond * 300)
-		for i := 0; i < len(n.remoteNodes); i++ {
-			func() {
-				err := n.ping(n.remoteNodes[i].con)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-			}()
-		}
-	}
-
+	retry.Loop(n.pingAll, time.Second)
 }
 
-func (n *Node) ping(c net.Conn) error {
+func (n *Node) pingAll() error {
+	for i := 0; i < len(n.remoteNodes); i++ {
+
+		if err := n.pingOne(n.remoteNodes[i].con); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (n *Node) pingOne(c net.Conn) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
 	var b [2]byte
 	codec.Encode(&b, Ping)
 
+	c.SetWriteDeadline(time.Now().Add(time.Second))
 	_, err := c.Write(b[:])
 	if err != nil {
 		return err
@@ -116,20 +110,21 @@ func (n *Node) ping(c net.Conn) error {
 
 }
 
-func (n *Node) ponger(c net.Conn) {
-	for {
+func (n *Node) listen(c net.Conn) {
 
-		<-time.After(time.Millisecond * 200)
-
-		n.pong(c)
+	f, err := retry.WrapForRetry(n.handle, c)
+	if err != nil {
+		return
 	}
+	retry.Loop(f, time.Millisecond*200)
 
 }
 
-func (n *Node) pong(c net.Conn) error {
-	c.SetDeadline(time.Now().Add(time.Second))
+func (n *Node) handle(c net.Conn) error {
 
 	var b [2]byte
+
+	c.SetReadDeadline(time.Now().Add(time.Second))
 
 	_, err := c.Read(b[:])
 	if err != nil {
@@ -140,6 +135,8 @@ func (n *Node) pong(c net.Conn) error {
 
 	n.lock.Lock()
 	defer n.lock.Unlock()
+
+	c.SetWriteDeadline(time.Now().Add(time.Second))
 
 	res := codec.Decode(b[:])
 
@@ -161,5 +158,15 @@ func (n *Node) pong(c net.Conn) error {
 	default:
 		return errors.New("some err")
 	}
+
+}
+
+func (n *Node) removePeer(index int) {
+
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	n.remoteNodes[index].con.Close()
+
+	n.remoteNodes = append(n.remoteNodes[:index], n.remoteNodes[index+1:]...)
 
 }
