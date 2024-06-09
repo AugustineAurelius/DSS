@@ -3,7 +3,6 @@ package node
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/AugustineAurelius/DSS/pkg/codec"
@@ -31,8 +30,6 @@ func (n *Node) defaultECDHHandshake(c net.Conn) error {
 	peer.con = c
 	n.remoteNodes = append(n.remoteNodes, *peer)
 
-	go n.ponger(peer.con)
-
 	return nil
 }
 
@@ -53,8 +50,6 @@ func (n *Node) defaultECDHDial(c net.Conn) error {
 	defer n.lock.Unlock()
 	peer.con = c
 	n.remoteNodes = append(n.remoteNodes, *peer)
-
-	go n.ponger(peer.con)
 
 	return nil
 }
@@ -128,26 +123,4 @@ func (n *Node) idExchange(c net.Conn, p *Peer) error {
 	p.ID = remoteId
 
 	return nil
-}
-
-func (n *Node) ping(c net.Conn) error {
-
-	var b [2]byte
-	codec.Encode(&b, Ping)
-
-	_, err := c.Write(b[:])
-	if err != nil {
-		return err
-	}
-	_, err = c.Read(b[:])
-	res := codec.Decode(b[:])
-
-	if res != Pong {
-		fmt.Println(res)
-		return errors.New("wrong pong")
-	}
-
-	fmt.Println("ping ", n.ID)
-	return nil
-
 }

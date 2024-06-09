@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -39,6 +40,7 @@ func (n *Node) Serve() error {
 	n.listener = l
 
 	go n.acceptLoop()
+	go n.pinger()
 	return nil
 }
 
@@ -56,6 +58,7 @@ func (n *Node) acceptLoop() {
 		if err != nil {
 			return
 		}
+		go n.ponger(conn)
 
 	}
 
@@ -72,6 +75,8 @@ func (n *Node) dial(port string) error {
 	if err != nil {
 		return err
 	}
+	go n.ponger(conn)
+	go n.pinger()
 
 	return nil
 }
@@ -79,43 +84,82 @@ func (n *Node) dial(port string) error {
 func (n *Node) pinger() {
 
 	for {
-		<-time.After(time.Second * 2)
+
+		<-time.After(time.Millisecond * 300)
 		for i := 0; i < len(n.remoteNodes); i++ {
-			err := n.ping(n.remoteNodes[i].con)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
+			func() {
+				err := n.ping(n.remoteNodes[i].con)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+			}()
 		}
 	}
 
 }
 
+func (n *Node) ping(c net.Conn) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	var b [2]byte
+	codec.Encode(&b, Ping)
+
+	_, err := c.Write(b[:])
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (n *Node) ponger(c net.Conn) {
 	for {
-		<-time.After(time.Second)
 
-		var b [2]byte
+		<-time.After(time.Millisecond * 200)
 
-		_, err := c.Read(b[:])
+		n.pong(c)
+	}
+
+}
+
+func (n *Node) pong(c net.Conn) error {
+	c.SetDeadline(time.Now().Add(time.Second))
+
+	var b [2]byte
+
+	_, err := c.Read(b[:])
+	if err != nil {
+		fmt.Println(err)
+		return err
+
+	}
+
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	res := codec.Decode(b[:])
+
+	switch res {
+	case Ping:
+		codec.Encode(&b, Pong)
+		_, err = c.Write(b[:])
 		if err != nil {
 			fmt.Println(err)
-			continue
-
+			return err
 		}
+		fmt.Println("got ping", n.ID)
+		return nil
 
-		res := codec.Decode(b[:])
+	case Pong:
+		fmt.Println("got pong", n.ID)
+		return nil
 
-		switch res {
-		case Ping:
-			codec.Encode(&b, Pong)
-			_, err = c.Write(b[:])
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			fmt.Println("pong", n.ID)
-		}
+	default:
+		return errors.New("some err")
 	}
 
 }

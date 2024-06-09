@@ -14,10 +14,8 @@ func TestPingPong(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	go n1.pinger()
 
 	n2 := New()
-	go n2.pinger()
 
 	err = n2.dial(":4001")
 	if err != nil {
