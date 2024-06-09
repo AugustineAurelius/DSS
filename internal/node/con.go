@@ -108,7 +108,7 @@ func (n *Node) pingOne(c net.Conn) error {
 		return err
 	}
 
-	n.sendHashes()
+	n.testSendHashes()
 
 	return nil
 
@@ -169,12 +169,8 @@ func (n *Node) handle(c net.Conn) error {
 
 		}
 
-		hexByte := make([]byte, res/2)
-
-		hex.Decode(hexByte, tmp)
-
 		var rootHash [32]byte
-		merkletree.MerkleTree32(&rootHash, bytes.NewBuffer(hexByte))
+		merkletree.MerkleTree32(&rootHash, bytes.NewBuffer(tmp))
 
 		dst := make([]byte, 64)
 		hex.Encode(dst, rootHash[:])
@@ -196,14 +192,19 @@ func (n *Node) removePeer(index int) {
 
 }
 
-func (n *Node) sendHashes() {
+func (n *Node) testSendHashes() {
 	testHashes := "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
 
 	var we []byte
 	var tm [2]byte
-	codec.Encode(&tm, 256)
+
+	hexByte := make([]byte, len(testHashes)/2)
+
+	hex.Decode(hexByte, []byte(testHashes))
+
+	codec.Encode(&tm, 128)
 	we = append(we, tm[:]...)
-	we = append(we, []byte(testHashes)...)
+	we = append(we, []byte(hexByte)...)
 
 	n.remoteNodes[0].con.Write(we)
 }
