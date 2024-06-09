@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/AugustineAurelius/DSS/config"
+	"github.com/AugustineAurelius/DSS/pkg/uuid"
 )
 
 type Node struct {
-	ID []byte
+	ID [16]byte
 
 	lock sync.Mutex
 
@@ -25,7 +26,7 @@ type Node struct {
 
 func New() *Node {
 
-	return &Node{}
+	return &Node{ID: uuid.New()}
 }
 
 func (n *Node) Serve() error {
@@ -69,7 +70,7 @@ func (n *Node) dial(port string) error {
 
 	err = n.defaultECDHDial(conn)
 	if err != nil {
-		return er
+		return err
 	}
 
 	time.Sleep(time.Second)
