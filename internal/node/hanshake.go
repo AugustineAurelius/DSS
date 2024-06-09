@@ -12,33 +12,51 @@ import (
 type handshakeFunc = func(c net.Conn) error
 
 func (n *Node) defaultECDHHandshake(c net.Conn) error {
-	err := n.keyExchange(c)
+
+	peer := &Peer{}
+
+	err := n.keyExchange(c, peer)
 	if err != nil {
 		return err
 	}
 
-	err = n.idExchange(c)
+	err = n.idExchange(c, peer)
 	if err != nil {
 		return err
 	}
+
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	n.remoteNodes = append(n.remoteNodes, *peer)
+	n.connections = append(n.connections, c)
 
 	return nil
 }
 
 func (n *Node) defaultECDHDial(c net.Conn) error {
+	peer := &Peer{}
 
-	err := n.keyExchange(c)
+	err := n.keyExchange(c, peer)
 	if err != nil {
 		return err
 	}
-	err = n.idExchange(c)
+
+	err = n.idExchange(c, peer)
 	if err != nil {
 		return err
 	}
+
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	n.remoteNodes = append(n.remoteNodes, *peer)
+	n.connections = append(n.connections, c)
+
 	return nil
 }
 
-func (n *Node) keyExchange(c net.Conn) error {
+func (n *Node) keyExchange(c net.Conn, p *Peer) error {
 	privateKey := ecdh.New()
 
 	_, err := c.Write(privateKey.PublicKey().Bytes())
@@ -51,6 +69,7 @@ func (n *Node) keyExchange(c net.Conn) error {
 	if err != nil {
 		return err
 	}
+	p.RemotePub = pubBytes
 
 	secret := ecdh.MustEDCH(privateKey, &pubBytes)
 
@@ -64,6 +83,7 @@ func (n *Node) keyExchange(c net.Conn) error {
 	if err != nil {
 		return err
 	}
+	p.Secret = remSecret
 
 	if !bytes.Equal(secret, remSecret[:]) {
 		c.Close()
@@ -74,7 +94,7 @@ func (n *Node) keyExchange(c net.Conn) error {
 
 }
 
-func (n *Node) idExchange(c net.Conn) error {
+func (n *Node) idExchange(c net.Conn, p *Peer) error {
 	var idReq [2]byte
 	codec.Encode(&idReq, IDReq)
 
@@ -102,6 +122,7 @@ func (n *Node) idExchange(c net.Conn) error {
 	if err != nil {
 		return err
 	}
+	p.ID = remoteId
 
 	return nil
 }
