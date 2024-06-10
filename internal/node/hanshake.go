@@ -28,7 +28,7 @@ func (n *Node) handshake(c net.Conn) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	peer.con = c
-	n.remoteNodes = append(n.remoteNodes, *peer)
+	n.remotePeers = append(n.remotePeers, *peer)
 
 	return nil
 }

@@ -25,7 +25,7 @@ type Node struct {
 
 	listener net.Listener
 
-	remoteNodes []Peer
+	remotePeers []Peer
 }
 
 func New() *Node {
@@ -87,9 +87,9 @@ func (n *Node) pinger() {
 }
 
 func (n *Node) pingAll() error {
-	for i := 0; i < len(n.remoteNodes); i++ {
+	for i := 0; i < len(n.remotePeers); i++ {
 
-		if err := n.pingOne(n.remoteNodes[i].con); err != nil {
+		if err := n.pingOne(n.remotePeers[i].con); err != nil {
 			return err
 		}
 	}
@@ -186,9 +186,9 @@ func (n *Node) removePeer(index int) {
 
 	n.lock.Lock()
 	defer n.lock.Unlock()
-	n.remoteNodes[index].con.Close()
+	n.remotePeers[index].con.Close()
 
-	n.remoteNodes = append(n.remoteNodes[:index], n.remoteNodes[index+1:]...)
+	n.remotePeers = append(n.remotePeers[:index], n.remotePeers[index+1:]...)
 
 }
 
@@ -206,5 +206,5 @@ func (n *Node) testSendHashes() {
 	we = append(we, tm[:]...)
 	we = append(we, []byte(hexByte)...)
 
-	n.remoteNodes[0].con.Write(we)
+	n.remotePeers[0].con.Write(we)
 }
