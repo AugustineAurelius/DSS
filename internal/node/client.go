@@ -29,8 +29,6 @@ type Node struct {
 
 	listener    net.Listener
 	remotePeers []*Peer
-
-	n string
 }
 
 func New() *Node {

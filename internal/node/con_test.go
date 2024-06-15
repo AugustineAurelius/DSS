@@ -8,7 +8,6 @@ import (
 func TestPingPong(t *testing.T) {
 
 	n1 := New()
-	n1.n = "server"
 	n1.port = ":4001"
 	err := n1.Serve()
 	if err != nil {
@@ -17,7 +16,6 @@ func TestPingPong(t *testing.T) {
 	}
 
 	n2 := New()
-	n2.n = "clietn"
 
 	n2.port = ":4002"
 	n2.Serve()
