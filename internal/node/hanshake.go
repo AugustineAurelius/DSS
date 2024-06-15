@@ -82,7 +82,6 @@ func (n *Node) idExchange(c net.Conn, p *Peer) error {
 
 	buf.Write(n.ID[:])
 	write(c, buf)
-
 	read(c, buf)
 
 	resp := make([]byte, buf.Len())
@@ -130,7 +129,6 @@ func write(c net.Conn, buf *bytes.Buffer) {
 	res := make([]byte, bufLen+2)
 
 	codec.WriteHeader(res, uint16(bufLen))
-
 	copy(res[2:], body)
 
 	_, err = c.Write(res)

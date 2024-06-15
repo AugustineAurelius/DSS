@@ -17,8 +17,7 @@ type Node struct {
 	host string
 	port string
 
-	listener net.Listener
-
+	listener    net.Listener
 	remotePeers []Peer
 }
 
@@ -30,9 +29,14 @@ func New() *Node {
 func (n *Node) handle() error {
 	for i := 0; i < len(n.remotePeers); i++ {
 		peer := n.remotePeers[i]
+
 		peer.lock()
-		c := peer.con
-		n.keyExchange(c)
+
+		if err := n.keyExchange(peer.con); err != nil {
+			n.removePeer(i)
+			return err
+		}
+
 		peer.unlock()
 	}
 	return nil
