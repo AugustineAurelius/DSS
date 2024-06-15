@@ -63,11 +63,13 @@ func (n *Node) readMsg(peer *Peer) {
 
 	msg := message.Get()
 	defer message.Put(msg)
-	peer.con.SetDeadline(time.Now().Add(time.Second))
+	peer.con.SetReadDeadline(time.Now().Add(time.Second))
 
 	err := read(peer.con, buf)
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
+			n.keyExchange(peer.con) //inf msgs
+
 			return
 		}
 		fmt.Println(err)
