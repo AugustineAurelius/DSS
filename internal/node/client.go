@@ -1,16 +1,25 @@
 package node
 
 import (
-	"encoding/hex"
+	"bytes"
+	"errors"
+	"fmt"
 	"net"
 	"sync"
+	"time"
 
+	"github.com/AugustineAurelius/DSS/pkg/buffer"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
+	"github.com/AugustineAurelius/DSS/pkg/crypto/ecdh"
+	"github.com/AugustineAurelius/DSS/pkg/message"
+	"github.com/AugustineAurelius/DSS/pkg/retry"
 	"github.com/AugustineAurelius/DSS/pkg/uuid"
 )
 
 type Node struct {
 	ID [16]byte
+
+	privateKey *ecdh.PrivateKey
 
 	lock sync.Mutex
 
@@ -18,26 +27,22 @@ type Node struct {
 	port string
 
 	listener    net.Listener
-	remotePeers []Peer
+	remotePeers []*Peer
+
+	n string
 }
 
 func New() *Node {
+	n := &Node{ID: uuid.New(), privateKey: ecdh.New()}
 
-	return &Node{ID: uuid.New()}
+	go retry.Loop(n.consume, time.Second)
+
+	return n
 }
 
-func (n *Node) handle() error {
+func (n *Node) consume() error {
 	for i := 0; i < len(n.remotePeers); i++ {
-		peer := n.remotePeers[i]
-
-		peer.lock()
-
-		if err := n.keyExchange(peer.con); err != nil {
-			n.removePeer(i)
-			return err
-		}
-
-		peer.unlock()
+		n.readMsg(n.remotePeers[i])
 	}
 	return nil
 }
@@ -50,19 +55,98 @@ func (n *Node) removePeer(index int) {
 	n.remotePeers = append(n.remotePeers[:index], n.remotePeers[index+1:]...)
 }
 
-func (n *Node) testSendHashes() {
-	testHashes := "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+func (n *Node) readMsg(peer *Peer) {
 
-	var we []byte
-	var tm [2]byte
+	buf := buffer.Get()
+	defer buffer.Put(buf)
 
-	hexByte := make([]byte, len(testHashes)/2)
+	msg := message.Get()
+	defer message.Put(msg)
+	peer.con.SetDeadline(time.Now().Add(time.Second))
 
-	hex.Decode(hexByte, []byte(testHashes))
+	err := read(peer.con, buf)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	codec.Encode(&tm, 128)
-	we = append(we, tm[:]...)
-	we = append(we, []byte(hexByte)...)
+	msg.Decode(buf)
 
-	n.remotePeers[0].con.Write(we)
+	n.handleMessage(peer, msg, buf)
+}
+
+func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer) {
+	fmt.Println("got msg", msg)
+	switch msg.Type {
+	case message.KeyExchangeRequest:
+		peer.Do(
+			func() {
+				peer.publicKey = msg.Body
+				msg.Reset()
+
+				msg.Type = message.KeyExchangeResponse
+				codec.WriteHeader(msg.Header[:], len(n.privateKey.PublicKey().Bytes()))
+				msg.Body = n.privateKey.PublicKey().Bytes()
+
+				msg.Encode(buf)
+				write(peer.con, buf)
+
+			},
+		)
+
+	case message.KeyExchangeResponse:
+		peer.Do(
+			func() {
+				peer.publicKey = msg.Body
+				msg.Reset()
+
+				secret := ecdh.MustEDCH(n.privateKey, peer.publicKey)
+
+				msg.Type = message.SecretExchangeRequest
+				codec.WriteHeader(msg.Header[:], len(secret))
+				msg.Body = secret
+
+				msg.Encode(buf)
+
+				write(peer.con, buf)
+
+			},
+		)
+
+	case message.SecretExchangeRequest:
+		peer.Do(
+			func() {
+				remoteSecret := msg.Body
+				msg.Reset()
+
+				secret := ecdh.MustEDCH(n.privateKey, peer.publicKey)
+
+				msg.Type = message.SecretExchangeResponse
+				codec.WriteHeader(msg.Header[:], 1)
+
+				if !bytes.Equal(secret, remoteSecret) {
+					fmt.Println(errors.New("secret is not equal"))
+					msg.Body = []byte{0}
+				} else {
+					msg.Body = []byte{1}
+				}
+				msg.Encode(buf)
+
+				write(peer.con, buf)
+			},
+		)
+
+	case message.SecretExchangeResponse:
+		if msg.Body[0] == 0 {
+			peer.con.Close()
+			//TODO remove peer by id
+			return
+		}
+		fmt.Println(peer, n)
+
+	case message.IDExchangeRequest:
+	case message.IDExchangeResponse:
+
+	}
+
 }

@@ -19,8 +19,7 @@ func (n *Node) Serve() error {
 	n.listener = l
 
 	go retry.Loop(n.accept, time.Second)
-	go retry.Loop(n.pingAll, time.Second)
-	go retry.Loop(n.handle, time.Second)
+	// go retry.Loop(n.pingAll, time.Second)
 
 	return nil
 }
@@ -40,16 +39,4 @@ func (n *Node) accept() error {
 
 	return nil
 
-}
-
-func (n *Node) pingAll() error {
-	for i := 0; i < len(n.remotePeers); i++ {
-
-		peer := n.remotePeers[i]
-		peer.lock()
-		n.keyExchange(peer.con)
-		peer.unlock()
-
-	}
-	return nil
 }

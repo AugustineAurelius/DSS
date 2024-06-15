@@ -2,10 +2,9 @@ package node
 
 import (
 	"net"
-	"time"
+	"sync"
 
 	"github.com/AugustineAurelius/DSS/config"
-	"github.com/AugustineAurelius/DSS/pkg/retry"
 )
 
 func (n *Node) dial(port string) error {
@@ -15,12 +14,12 @@ func (n *Node) dial(port string) error {
 		return err
 	}
 
-	err = n.handshake(conn)
-	if err != nil {
-		return err
-	}
-
-	go retry.Loop(n.handle, time.Second)
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	peer := &Peer{}
+	peer.con = conn
+	peer.m = &sync.Mutex{}
+	n.remotePeers = append(n.remotePeers, peer)
 
 	return nil
 }

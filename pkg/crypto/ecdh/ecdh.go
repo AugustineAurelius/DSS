@@ -7,6 +7,9 @@ import (
 
 var curve = ecdh.P256()
 
+type PrivateKey = ecdh.PrivateKey
+type PublicKey = ecdh.PublicKey
+
 // public len = 65; private len = 32
 func New() *ecdh.PrivateKey {
 	privateKey, err := curve.GenerateKey(rand.Reader)
