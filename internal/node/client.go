@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -66,7 +67,11 @@ func (n *Node) readMsg(peer *Peer) {
 
 	err := read(peer.con, buf)
 	if err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return
+		}
 		fmt.Println(err)
+
 		return
 	}
 
@@ -142,10 +147,42 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 			//TODO remove peer by id
 			return
 		}
-		fmt.Println(peer, n)
+
+		msg.Reset()
+
+		msg.Type = message.IDExchangeRequest
+		codec.WriteHeader(msg.Header[:], 16)
+		msg.Body = n.ID[:]
+
+		msg.Encode(buf)
+
+		write(peer.con, buf)
 
 	case message.IDExchangeRequest:
+		peer.Do(
+			func() {
+
+				copy(peer.ID[:], msg.Body)
+				msg.Reset()
+
+				msg.Type = message.IDExchangeResponse
+				codec.WriteHeader(msg.Header[:], 16)
+				msg.Body = n.ID[:]
+
+				msg.Encode(buf)
+
+				write(peer.con, buf)
+			},
+		)
+
 	case message.IDExchangeResponse:
+		peer.Do(
+			func() {
+
+				copy(peer.ID[:], msg.Body)
+				msg.Reset()
+			},
+		)
 
 	}
 

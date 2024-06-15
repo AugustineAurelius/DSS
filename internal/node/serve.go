@@ -19,7 +19,6 @@ func (n *Node) Serve() error {
 	n.listener = l
 
 	go retry.Loop(n.accept, time.Second)
-	// go retry.Loop(n.pingAll, time.Second)
 
 	return nil
 }

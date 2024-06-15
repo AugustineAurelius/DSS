@@ -24,11 +24,6 @@ func (n *Node) handshake(c net.Conn) error {
 		return err
 	}
 
-	// err = n.idExchange(c, peer)
-	// if err != nil {
-	// 	return err
-	// }
-
 	return nil
 }
 
