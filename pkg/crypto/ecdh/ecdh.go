@@ -27,7 +27,7 @@ func MustPrivateKeyFromBytes(key *[32]byte) *ecdh.PrivateKey {
 	return privateKey
 }
 
-func mustPublicKeyFromBytes(key *[65]byte) *ecdh.PublicKey {
+func mustPublicKeyFromBytes(key []byte) *ecdh.PublicKey {
 
 	publicKey, err := curve.NewPublicKey(key[:])
 	if err != nil {
@@ -36,7 +36,7 @@ func mustPublicKeyFromBytes(key *[65]byte) *ecdh.PublicKey {
 	return publicKey
 }
 
-func MustEDCH(privateKey *ecdh.PrivateKey, remotePub *[65]byte) []byte {
+func MustEDCH(privateKey *ecdh.PrivateKey, remotePub []byte) []byte {
 
 	secret, err := privateKey.ECDH(mustPublicKeyFromBytes(remotePub))
 	if err != nil {

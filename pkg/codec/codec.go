@@ -14,3 +14,8 @@ func Decode(b []byte) uint16 {
 }
 
 // [ 0 0 ] first two bytes amount of next bytes info uint16 65535
+
+func WriteHeader(b []byte, req uint16) {
+	b[0] = byte(req >> 8)
+	b[1] = byte(req)
+}
