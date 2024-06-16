@@ -86,3 +86,13 @@ func Loop(f func() error, t time.Duration) {
 		}
 	}
 }
+
+func InfLoop(f func() error) {
+	for {
+		err := f()
+		if err != nil {
+			continue
+		}
+	}
+
+}

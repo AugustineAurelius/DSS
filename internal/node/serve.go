@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/AugustineAurelius/DSS/config"
 	"github.com/AugustineAurelius/DSS/pkg/retry"
@@ -18,7 +17,7 @@ func (n *Node) Serve() error {
 
 	n.listener = l
 
-	go retry.Loop(n.accept, time.Microsecond)
+	go retry.InfLoop(n.accept)
 
 	return nil
 }
