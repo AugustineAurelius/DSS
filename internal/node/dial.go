@@ -7,7 +7,7 @@ import (
 	"github.com/AugustineAurelius/DSS/config"
 )
 
-func (n *Node) dial(port string) error {
+func (n *Node) Dial(port string) error {
 
 	conn, err := net.Dial(config.DefaultConfig.Network, port)
 	if err != nil {

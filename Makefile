@@ -7,7 +7,7 @@ run: build
 
 
 test: cleanup
-	@go test ./... -v  
+	@go test ./... -v -benchmem
 
 
 bench: cleanup

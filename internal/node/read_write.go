@@ -47,16 +47,7 @@ func read(c net.Conn, buf *bytes.Buffer) error {
 
 func write(c net.Conn, buf *bytes.Buffer) error {
 
-	bufLen := buf.Len()
-
-	m := make([]byte, bufLen)
-
-	_, err := buf.Read(m)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.Write(m)
+	_, err := buf.WriteTo(c)
 	if err != nil {
 		return err
 	}

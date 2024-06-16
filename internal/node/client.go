@@ -31,8 +31,8 @@ type Node struct {
 	remotePeers []*Peer
 }
 
-func New() *Node {
-	n := &Node{ID: uuid.New(), privateKey: ecdh.New()}
+func New(port string) *Node {
+	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port}
 
 	go retry.Loop(n.consume, time.Second)
 
@@ -66,12 +66,10 @@ func (n *Node) readMsg(peer *Peer) {
 	err := read(peer.con, buf)
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
-			n.keyExchange(peer.con) //inf msgs
-
+			n.keyExchange(peer.con)
 			return
 		}
 		fmt.Println(err)
-
 		return
 	}
 

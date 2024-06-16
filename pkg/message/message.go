@@ -38,5 +38,7 @@ func (p *Payload) GetBodyLen() uint16 {
 }
 
 func (p *Payload) Reset() {
-	p = &Payload{}
+	p.Type = 0
+	p.Header = [2]byte{0, 0}
+	p.Body = p.Body[:0]
 }
