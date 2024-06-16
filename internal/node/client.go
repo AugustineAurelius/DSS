@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AugustineAurelius/DSS/internal/peer"
 	"github.com/AugustineAurelius/DSS/pkg/buffer"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
 	"github.com/AugustineAurelius/DSS/pkg/crypto/ecdh"
@@ -28,7 +29,7 @@ type Node struct {
 	port string
 
 	listener    net.Listener
-	remotePeers []*Peer
+	remotePeers []*peer.Remote
 }
 
 func New(port string) *Node {
@@ -46,27 +47,19 @@ func (n *Node) consume() error {
 	return nil
 }
 
-func (n *Node) removePeer(index int) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	n.remotePeers[index].con.Close()
-
-	n.remotePeers = append(n.remotePeers[:index], n.remotePeers[index+1:]...)
-}
-
-func (n *Node) readMsg(peer *Peer) {
+func (n *Node) readMsg(peer *peer.Remote) {
 
 	buf := buffer.Get()
 	defer buffer.Put(buf)
 
 	msg := message.Get()
 	defer message.Put(msg)
-	peer.con.SetReadDeadline(time.Now().Add(time.Second))
+	peer.Conn().SetReadDeadline(time.Now().Add(time.Second))
 
-	err := read(peer.con, buf)
+	err := read(peer.Conn(), buf)
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
-			n.keyExchange(peer.con)
+			n.keyExchange(peer.Conn())
 			return
 		}
 		fmt.Println(err)
@@ -78,13 +71,13 @@ func (n *Node) readMsg(peer *Peer) {
 	n.handleMessage(peer, msg, buf)
 }
 
-func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer) {
-	fmt.Println("got msg", msg.Type, n.ID)
+func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes.Buffer) {
+	fmt.Println("got msg", msg.Type, n.ID, peer.ID())
 	switch msg.Type {
 	case message.KeyExchangeRequest:
 		peer.Do(
 			func() {
-				peer.publicKey = msg.Body
+				peer.SetPublicKey(msg.Body)
 				msg.Reset()
 
 				msg.Type = message.KeyExchangeResponse
@@ -92,7 +85,7 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 				msg.Body = n.privateKey.PublicKey().Bytes()
 
 				msg.Encode(buf)
-				write(peer.con, buf)
+				write(peer.Conn(), buf)
 
 			},
 		)
@@ -100,10 +93,10 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 	case message.KeyExchangeResponse:
 		peer.Do(
 			func() {
-				peer.publicKey = msg.Body
+				peer.SetPublicKey(msg.Body)
 				msg.Reset()
 
-				secret := ecdh.MustEDCH(n.privateKey, peer.publicKey)
+				secret := ecdh.MustEDCH(n.privateKey, peer.PublicKey())
 
 				msg.Type = message.SecretExchangeRequest
 				codec.WriteHeader(msg.Header[:], len(secret))
@@ -111,7 +104,7 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 
 				msg.Encode(buf)
 
-				write(peer.con, buf)
+				write(peer.Conn(), buf)
 
 			},
 		)
@@ -122,7 +115,7 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 				remoteSecret := msg.Body
 				msg.Reset()
 
-				secret := ecdh.MustEDCH(n.privateKey, peer.publicKey)
+				secret := ecdh.MustEDCH(n.privateKey, peer.PublicKey())
 
 				msg.Type = message.SecretExchangeResponse
 				codec.WriteHeader(msg.Header[:], 1)
@@ -135,14 +128,13 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 				}
 				msg.Encode(buf)
 
-				write(peer.con, buf)
+				write(peer.Conn(), buf)
 			},
 		)
 
 	case message.SecretExchangeResponse:
 		if msg.Body[0] == 0 {
-			peer.con.Close()
-			//TODO remove peer by id
+			n.removeByRemoteAddr(peer.Conn().RemoteAddr())
 			return
 		}
 
@@ -154,13 +146,13 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 
 		msg.Encode(buf)
 
-		write(peer.con, buf)
+		write(peer.Conn(), buf)
 
 	case message.IDExchangeRequest:
 		peer.Do(
 			func() {
 
-				copy(peer.ID[:], msg.Body)
+				copy(peer.ID(), msg.Body)
 				msg.Reset()
 
 				msg.Type = message.IDExchangeResponse
@@ -169,19 +161,37 @@ func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer
 
 				msg.Encode(buf)
 
-				write(peer.con, buf)
+				write(peer.Conn(), buf)
 			},
 		)
 
 	case message.IDExchangeResponse:
 		peer.Do(
 			func() {
-
-				copy(peer.ID[:], msg.Body)
+				copy(peer.ID(), msg.Body)
 				msg.Reset()
 			},
 		)
 
+	}
+
+}
+
+func (n *Node) removePeer(index int) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	n.remotePeers[index].Conn().Close()
+	n.remotePeers = append(n.remotePeers[:index], n.remotePeers[index+1:]...)
+}
+
+func (n *Node) removeByRemoteAddr(adr net.Addr) {
+	for i := 0; i < len(n.remotePeers); i++ {
+
+		if n.remotePeers[i].GetAddr() == adr.String() {
+			n.removePeer(i)
+			return
+		}
 	}
 
 }

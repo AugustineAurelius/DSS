@@ -2,8 +2,8 @@ package node
 
 import (
 	"net"
-	"sync"
 
+	"github.com/AugustineAurelius/DSS/internal/peer"
 	"github.com/AugustineAurelius/DSS/pkg/buffer"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
 	"github.com/AugustineAurelius/DSS/pkg/message"
@@ -16,10 +16,10 @@ func (n *Node) handshake(c net.Conn) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	peer := &Peer{con: c, m: &sync.Mutex{}}
-	n.remotePeers = append(n.remotePeers, peer)
+	p := peer.New(c)
+	n.remotePeers = append(n.remotePeers, p)
 
-	err := n.keyExchange(peer.con)
+	err := n.keyExchange(p.Conn())
 	if err != nil {
 		return err
 	}

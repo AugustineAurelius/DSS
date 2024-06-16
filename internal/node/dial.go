@@ -2,9 +2,9 @@ package node
 
 import (
 	"net"
-	"sync"
 
 	"github.com/AugustineAurelius/DSS/config"
+	"github.com/AugustineAurelius/DSS/internal/peer"
 )
 
 func (n *Node) Dial(port string) error {
@@ -16,10 +16,9 @@ func (n *Node) Dial(port string) error {
 
 	n.lock.Lock()
 	defer n.lock.Unlock()
-	peer := &Peer{}
-	peer.con = conn
-	peer.m = &sync.Mutex{}
-	n.remotePeers = append(n.remotePeers, peer)
+
+	p := peer.New(conn)
+	n.remotePeers = append(n.remotePeers, p)
 
 	return nil
 }
