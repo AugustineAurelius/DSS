@@ -7,7 +7,7 @@ import (
 
 type Remote struct {
 	id        [16]byte
-	publicKey []byte
+	publicKey [65]byte
 	m         *sync.Mutex
 	con       net.Conn
 }
@@ -39,10 +39,5 @@ func (r *Remote) ID() []byte {
 }
 
 func (r *Remote) PublicKey() []byte {
-	return r.publicKey
-}
-
-func (r *Remote) SetPublicKey(remPub []byte) {
-	r.publicKey = remPub
-
+	return r.publicKey[:]
 }

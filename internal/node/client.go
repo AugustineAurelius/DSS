@@ -77,7 +77,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 	case message.KeyExchangeRequest:
 		peer.Do(
 			func() {
-				peer.SetPublicKey(msg.Body)
+
+				copy(peer.PublicKey(), msg.Body)
 				msg.Reset()
 
 				msg.Type = message.KeyExchangeResponse
@@ -93,7 +94,7 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 	case message.KeyExchangeResponse:
 		peer.Do(
 			func() {
-				peer.SetPublicKey(msg.Body)
+				copy(peer.PublicKey(), msg.Body)
 				msg.Reset()
 
 				secret := ecdh.MustEDCH(n.privateKey, peer.PublicKey())
