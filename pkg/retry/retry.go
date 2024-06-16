@@ -79,8 +79,7 @@ func DoCtx(t time.Duration, f func(context.Context) error) error {
 }
 
 func Loop(f func() error, t time.Duration) {
-	for {
-		<-time.After(t)
+	for range time.Tick(t) {
 		err := f()
 		if err != nil {
 			continue

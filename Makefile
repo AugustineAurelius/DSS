@@ -1,6 +1,7 @@
 
 build:
-	@go build -o bin/fs
+	@go clean -cache
+	@go build -o bin/fs cmd/main.go 
 
 run: build
 	@./bin/fs
@@ -15,4 +16,6 @@ bench: cleanup
 
 cleanup:
 	@go clean -testcache
+
+
 

@@ -27,7 +27,6 @@ func main() {
 
 	r := http.NewServeMux()
 
-	// Регистрация pprof-обработчиков
 	r.HandleFunc("/debug/pprof/", pprof.Index)
 	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
