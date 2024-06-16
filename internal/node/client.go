@@ -35,15 +35,25 @@ type Node struct {
 func New(port string) *Node {
 	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port}
 
-	go retry.Loop(n.consume, time.Second)
+	go retry.Loop(n.consume, time.Millisecond)
 
 	return n
 }
 
 func (n *Node) consume() error {
+	wg := sync.WaitGroup{}
 	for i := 0; i < len(n.remotePeers); i++ {
-		n.readMsg(n.remotePeers[i])
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+
+			if !n.remotePeers[index].IsSkip() {
+				n.readMsg(n.remotePeers[index])
+			}
+
+		}(i)
 	}
+	wg.Wait()
 	return nil
 }
 
@@ -59,7 +69,8 @@ func (n *Node) readMsg(peer *peer.Remote) {
 	err := read(peer.Conn(), buf)
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
-			n.keyExchange(peer.Conn())
+			peer.Skip()
+			// n.keyExchange(peer.Conn())
 			return
 		}
 		fmt.Println(err)
@@ -72,7 +83,7 @@ func (n *Node) readMsg(peer *peer.Remote) {
 }
 
 func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes.Buffer) {
-	fmt.Println("got msg", msg.Type, n.ID, peer.ID())
+	// fmt.Println("got msg", msg.Type, n.ID, peer.ID())
 	switch msg.Type {
 	case message.KeyExchangeRequest:
 		peer.Do(
@@ -171,6 +182,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 			func() {
 				copy(peer.ID(), msg.Body)
 				msg.Reset()
+
+				fmt.Println("node id", n.ID, "remote id", peer.ID())
 			},
 		)
 

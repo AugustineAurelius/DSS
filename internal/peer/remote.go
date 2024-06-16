@@ -3,6 +3,7 @@ package peer
 import (
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 type Remote struct {
@@ -10,14 +11,24 @@ type Remote struct {
 	publicKey [65]byte
 	m         *sync.Mutex
 	con       net.Conn
+	skip      atomic.Int32
 }
 
 func New(c net.Conn) *Remote {
 	return &Remote{
-		con: c,
-		m:   &sync.Mutex{},
+		con:  c,
+		m:    &sync.Mutex{},
+		skip: atomic.Int32{},
 	}
+}
 
+func (r *Remote) IsSkip() bool {
+	defer func() { r.skip.Store(0) }()
+	return r.skip.Load() != 0
+}
+
+func (r *Remote) Skip() {
+	r.skip.Store(1)
 }
 
 func (r *Remote) Do(f func()) {

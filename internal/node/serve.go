@@ -18,7 +18,7 @@ func (n *Node) Serve() error {
 
 	n.listener = l
 
-	go retry.Loop(n.accept, time.Second)
+	go retry.Loop(n.accept, time.Microsecond)
 
 	return nil
 }
@@ -30,6 +30,8 @@ func (n *Node) accept() error {
 		conn.Close()
 		return err
 	}
+
+	fmt.Println("GOT new internal connection")
 
 	err = n.handshake(conn)
 	if err != nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/pprof"
 	_ "net/http/pprof"
@@ -10,19 +11,28 @@ import (
 
 func main() {
 
-	n1 := node.New(":4001")
+	n1 := node.New(":3998")
 	err := n1.Serve()
 	if err != nil {
 		return
 	}
 
-	n2 := node.New(":4002")
-
+	n2 := node.New(":3999")
 	n2.Serve()
 
-	err = n2.Dial(":4001")
+	err = n2.Dial(":3998")
 	if err != nil {
 		return
+	}
+
+	nodes := make([]*node.Node, 100)
+
+	for i := 0; i < 100; i++ {
+		nodes[i] = node.New(fmt.Sprintf(":400%d", i))
+	}
+
+	for i := 0; i < 100; i++ {
+		nodes[i].Dial(":3998")
 	}
 
 	r := http.NewServeMux()
