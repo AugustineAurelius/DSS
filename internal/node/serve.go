@@ -26,12 +26,12 @@ func (n *Node) accept() error {
 	conn, err := n.listener.Accept()
 	if err != nil {
 		fmt.Printf("TCP accept error: %s\n", err)
-		conn.Close()
 		return err
 	}
 
 	fmt.Println("GOT new internal connection")
 
+	conn.LocalAddr().Network()
 	err = n.handshake(conn)
 	if err != nil {
 		return err

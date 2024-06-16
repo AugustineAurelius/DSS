@@ -9,7 +9,7 @@ import (
 type Remote struct {
 	id        [16]byte
 	publicKey [65]byte
-	m         *sync.Mutex
+	m         sync.Mutex
 	con       net.Conn
 	skip      atomic.Int32
 }
@@ -17,7 +17,7 @@ type Remote struct {
 func New(c net.Conn) *Remote {
 	return &Remote{
 		con:  c,
-		m:    &sync.Mutex{},
+		m:    sync.Mutex{},
 		skip: atomic.Int32{},
 	}
 }

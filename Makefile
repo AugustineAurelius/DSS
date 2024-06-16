@@ -18,4 +18,9 @@ cleanup:
 	@go clean -testcache
 
 
+trace:
+	@go tool trace ./trace.out
+
+
+
 

@@ -28,12 +28,14 @@ type Node struct {
 	host string
 	port string
 
+	wg sync.WaitGroup
+
 	listener    net.Listener
 	remotePeers []*peer.Remote
 }
 
 func New(port string) *Node {
-	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port}
+	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port, wg: sync.WaitGroup{}}
 
 	go retry.Loop(n.consume, time.Millisecond)
 
@@ -41,21 +43,20 @@ func New(port string) *Node {
 }
 
 func (n *Node) consume() error {
-	wg := sync.WaitGroup{}
 	for i := 0; i < len(n.remotePeers); i++ {
 		if n.remotePeers[i].IsSkip() {
 			continue
 		}
 
-		wg.Add(1)
+		n.wg.Add(1)
 		go func(index int) {
-			defer wg.Done()
+			defer n.wg.Done()
 
 			n.readMsg(n.remotePeers[index])
 
 		}(i)
 	}
-	wg.Wait()
+	n.wg.Wait()
 	return nil
 }
 

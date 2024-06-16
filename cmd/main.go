@@ -13,6 +13,7 @@ import (
 
 func main() {
 	f, _ := os.Create("trace.out")
+	defer f.Close()
 	trace.Start(f)
 	defer trace.Stop()
 
@@ -34,10 +35,22 @@ func main() {
 
 	for i := 0; i < 100; i++ {
 		nodes[i] = node.New(fmt.Sprintf(":400%d", i))
+		nodes[i].Serve()
 	}
 
 	for i := 0; i < 100; i++ {
 		nodes[i].Dial(":3998")
+	}
+
+	for i := 0; i < 15; i++ {
+		for j := 0; j < 15; j++ {
+			if j == i {
+				continue
+			}
+			nodes[i].Dial(fmt.Sprintf(":400%d", j))
+
+		}
+
 	}
 
 	r := http.NewServeMux()
