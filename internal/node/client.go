@@ -79,7 +79,7 @@ func (n *Node) readMsg(peer *Peer) {
 }
 
 func (n *Node) handleMessage(peer *Peer, msg *message.Payload, buf *bytes.Buffer) {
-	fmt.Println("got msg", msg)
+	fmt.Println("got msg", msg.Type, n.ID)
 	switch msg.Type {
 	case message.KeyExchangeRequest:
 		peer.Do(

@@ -49,22 +49,3 @@ func (n *Node) keyExchange(c net.Conn) error {
 	return nil
 
 }
-
-func (n *Node) idExchange(c net.Conn, p *Peer) error {
-	buf := buffer.Get()
-
-	defer buffer.Put(buf)
-
-	buf.Write(n.ID[:])
-	write(c, buf)
-	read(c, buf)
-
-	resp := make([]byte, buf.Len())
-	_, err := buf.Read(resp)
-	if err != nil {
-		return err
-	}
-	p.ID = [16]byte(resp)
-
-	return nil
-}

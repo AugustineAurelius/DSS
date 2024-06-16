@@ -19,11 +19,12 @@ func (p *Payload) Encode(buf *bytes.Buffer) {
 }
 
 func (p *Payload) Decode(buf *bytes.Buffer) {
-	var err error
-	p.Type, err = buf.ReadByte()
+	t, err := buf.ReadByte()
 	if err != nil {
 		panic(err)
 	}
+
+	p.Type = t
 
 	buf.Read(p.Header[:])
 
