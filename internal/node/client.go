@@ -43,13 +43,15 @@ func New(port string) *Node {
 func (n *Node) consume() error {
 	wg := sync.WaitGroup{}
 	for i := 0; i < len(n.remotePeers); i++ {
+		if n.remotePeers[i].IsSkip() {
+			continue
+		}
+
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
 
-			if !n.remotePeers[index].IsSkip() {
-				n.readMsg(n.remotePeers[index])
-			}
+			n.readMsg(n.remotePeers[index])
 
 		}(i)
 	}

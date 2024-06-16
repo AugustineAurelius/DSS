@@ -5,11 +5,16 @@ import (
 	"net/http"
 	"net/http/pprof"
 	_ "net/http/pprof"
+	"os"
+	"runtime/trace"
 
 	"github.com/AugustineAurelius/DSS/internal/node"
 )
 
 func main() {
+	f, _ := os.Create("trace.out")
+	trace.Start(f)
+	defer trace.Stop()
 
 	n1 := node.New(":3998")
 	err := n1.Serve()
