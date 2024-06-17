@@ -52,3 +52,17 @@ func (r *Remote) ID() []byte {
 func (r *Remote) PublicKey() []byte {
 	return r.publicKey[:]
 }
+
+func (r *Remote) SetPublicKey(pk []byte) {
+	copy(r.publicKey[:], pk)
+}
+
+func (r *Remote) IsEmpty() bool {
+	for i := 0; i < len(r.publicKey); i++ {
+		if r.publicKey[i] != 0 {
+			return false
+		}
+	}
+
+	return true
+}

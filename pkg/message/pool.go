@@ -10,6 +10,9 @@ var messagePool = sync.Pool{
 
 func Get() *Payload {
 	msg := messagePool.Get().(*Payload)
+	if msg == nil {
+		msg = new(Payload)
+	}
 	msg.Reset()
 	return msg
 }

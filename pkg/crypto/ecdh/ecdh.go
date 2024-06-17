@@ -3,6 +3,7 @@ package ecdh
 import (
 	"crypto/ecdh"
 	"crypto/rand"
+	"fmt"
 )
 
 var curve = ecdh.P256()
@@ -32,9 +33,10 @@ func MustPrivateKeyFromBytes(key *[32]byte) *ecdh.PrivateKey {
 
 func mustPublicKeyFromBytes(key []byte) *ecdh.PublicKey {
 
-	publicKey, err := curve.NewPublicKey(key[:])
+	publicKey, err := curve.NewPublicKey(key)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%w, %b", err, key))
+
 	}
 	return publicKey
 }

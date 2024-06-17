@@ -16,6 +16,7 @@ func (p *Payload) Encode(buf *bytes.Buffer) {
 	buf.WriteByte(p.Type)
 	buf.Write(p.Header[:])
 	buf.Write(p.Body)
+	p.Reset()
 }
 
 func (p *Payload) Decode(buf *bytes.Buffer) {
@@ -29,9 +30,10 @@ func (p *Payload) Decode(buf *bytes.Buffer) {
 	buf.Read(p.Header[:])
 
 	body := make([]byte, p.GetBodyLen())
+
 	buf.Read(body)
 	p.Body = body
-
+	buf.Reset()
 }
 
 func (p *Payload) GetBodyLen() uint16 {

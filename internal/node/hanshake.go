@@ -36,7 +36,7 @@ func (n *Node) keyExchange(c net.Conn) error {
 	defer message.Put(m)
 
 	m.Type = message.KeyExchangeRequest
-	codec.WriteHeader(m.Header[:], len(n.privateKey.PublicKey().Bytes()))
+	codec.WriteHeader(m.Header[:], 65)
 	m.Body = n.privateKey.PublicKey().Bytes()
 
 	m.Encode(buf)

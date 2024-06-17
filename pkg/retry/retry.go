@@ -28,12 +28,15 @@ func WrapForRetry(f any, params ...any) (func() error, error) {
 
 func Do(attempts int, t time.Duration, f func() error) error {
 
+	ticker := time.NewTicker(t)
+	defer ticker.Stop()
 	for i := 0; i < attempts; i++ {
 		err := f()
 		if err == nil {
 			return nil
 		}
-		<-time.After(t)
+
+		<-ticker.C
 	}
 
 	return errors.New("all attempts wasted")
@@ -79,7 +82,9 @@ func DoCtx(t time.Duration, f func(context.Context) error) error {
 }
 
 func Loop(f func() error, t time.Duration) {
-	for range time.Tick(t) {
+	ticker := time.NewTicker(t)
+	defer ticker.Stop()
+	for range ticker.C {
 		err := f()
 		if err != nil {
 			continue
