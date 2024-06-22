@@ -13,6 +13,7 @@ import (
 	"github.com/AugustineAurelius/DSS/pkg/buffer"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
 	"github.com/AugustineAurelius/DSS/pkg/crypto/ecdh"
+	"github.com/AugustineAurelius/DSS/pkg/leveldb"
 	"github.com/AugustineAurelius/DSS/pkg/message"
 	"github.com/AugustineAurelius/DSS/pkg/retry"
 	"github.com/AugustineAurelius/DSS/pkg/uuid"
@@ -32,6 +33,8 @@ type Node struct {
 
 	listener    net.Listener
 	remotePeers []*peer.Remote
+
+	db *leveldb.DB
 }
 
 func New(port string) *Node {
