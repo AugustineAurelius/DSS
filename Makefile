@@ -24,3 +24,8 @@ trace:
 
 
 
+server:
+	@go run cmd/main.go server
+	
+client:
+	@go run cmd/main.go client

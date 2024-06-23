@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -13,10 +14,10 @@ import (
 	"github.com/AugustineAurelius/DSS/pkg/buffer"
 	"github.com/AugustineAurelius/DSS/pkg/codec"
 	"github.com/AugustineAurelius/DSS/pkg/crypto/ecdh"
-	"github.com/AugustineAurelius/DSS/pkg/leveldb"
 	"github.com/AugustineAurelius/DSS/pkg/message"
 	"github.com/AugustineAurelius/DSS/pkg/retry"
 	"github.com/AugustineAurelius/DSS/pkg/uuid"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type Node struct {
@@ -38,7 +39,14 @@ type Node struct {
 }
 
 func New(port string) *Node {
-	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port, wg: sync.WaitGroup{}}
+	n := &Node{ID: uuid.New(), privateKey: ecdh.New(), port: port, wg: sync.WaitGroup{}, db: &leveldb.DB{}}
+
+	db, err := leveldb.OpenFile("./storages/"+hex.EncodeToString(n.ID[:]), nil)
+	if err != nil {
+		panic(err)
+	}
+	n.db = db
+	// defer n.db.Close()
 
 	go retry.Loop(n.consume, time.Millisecond)
 
@@ -46,7 +54,7 @@ func New(port string) *Node {
 }
 
 func (n *Node) consume() error {
-	ch := make(chan net.Addr, 1)
+	ch := make(chan net.Addr, len(n.remotePeers))
 
 	for i := 0; i < len(n.remotePeers); i++ {
 		if n.remotePeers[i].IsSkip() {
@@ -60,21 +68,13 @@ func (n *Node) consume() error {
 		}(i)
 	}
 
-	//TODO: clear
-	go func() {
-		n.wg.Wait()
-		close(ch)
-	}()
+	n.wg.Wait()
 
-	temp := make([]net.Addr, 0, len(n.remotePeers))
-	for remover := range ch {
-		temp = append(temp, remover)
-
-	}
-
-	for _, v := range temp {
+	close(ch)
+	for v := range ch {
 		n.removeByRemoteAddr(v)
 	}
+
 	return nil
 }
 
@@ -110,6 +110,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 			func() {
 
 				peer.SetPublicKey(msg.Body[:codec.Decode(msg.Header[:])])
+				n.db.Put(msg.Hash(), msg.Body, nil)
+
 				msg.Reset()
 
 				msg.Type = message.KeyExchangeResponse
@@ -129,6 +131,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 				if peer.IsEmpty() {
 					peer.SetPublicKey(msg.Body[:codec.Decode(msg.Header[:])])
 				}
+				n.db.Put(msg.Hash(), msg.Body, nil)
+
 				msg.Reset()
 
 				secret := ecdh.MustEDCH(n.privateKey, peer.PublicKey())
@@ -148,6 +152,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 		peer.Do(
 			func() {
 				remoteSecret := msg.Body[:codec.Decode(msg.Header[:])]
+				n.db.Put(msg.Hash(), msg.Body, nil)
+
 				msg.Reset()
 
 				secret := ecdh.MustEDCH(n.privateKey, peer.PublicKey())
@@ -172,6 +178,7 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 			n.removeByRemoteAddr(peer.Conn().RemoteAddr())
 			return
 		}
+		n.db.Put(msg.Hash(), msg.Body, nil)
 
 		msg.Reset()
 
@@ -186,6 +193,7 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 	case message.IDExchangeRequest:
 		peer.Do(
 			func() {
+				n.db.Put(msg.Hash(), msg.Body, nil)
 
 				copy(peer.ID(), msg.Body)
 				// msg.Reset()
@@ -203,6 +211,8 @@ func (n *Node) handleMessage(peer *peer.Remote, msg *message.Payload, buf *bytes
 	case message.IDExchangeResponse:
 		peer.Do(
 			func() {
+				n.db.Put(msg.Hash(), msg.Body, nil)
+
 				copy(peer.ID(), msg.Body)
 				msg.Reset()
 

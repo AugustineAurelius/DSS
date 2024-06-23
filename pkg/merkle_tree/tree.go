@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 )
 
-func calculateHash256(dst *[32]byte, src []byte) {
+func CalculateHash256(dst *[32]byte, src []byte) {
 	*dst = sha256.Sum256(src)
 }
 
@@ -37,7 +37,7 @@ func MerkleTree32(dst *[32]byte, buf *bytes.Buffer) {
 			temp = append(temp[:32], temp[:32]...)
 		}
 		var res [32]byte
-		calculateHash256(&res, temp)
+		CalculateHash256(&res, temp)
 
 		mp = append(mp, res)
 	}
@@ -58,7 +58,7 @@ func MerkleTree32(dst *[32]byte, buf *bytes.Buffer) {
 
 			temp = append(temp, mp[i+1][:]...)
 
-			calculateHash256(&tmp, temp)
+			CalculateHash256(&tmp, temp)
 
 			intermedaiteMap = append(intermedaiteMap, tmp)
 		}
