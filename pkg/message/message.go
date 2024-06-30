@@ -8,9 +8,11 @@ import (
 )
 
 type Payload struct {
-	Type   byte
-	Header [2]byte //2 bytes (body len)
-	Body   []byte
+	Type      byte
+	Header    [2]byte //2 bytes (body len)
+	PublicKey [32]byte
+	Signature [64]byte
+	Body      []byte
 }
 
 func (p *Payload) Encode(buf *bytes.Buffer) {

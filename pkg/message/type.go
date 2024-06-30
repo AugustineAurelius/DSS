@@ -7,4 +7,6 @@ const (
 	SecretExchangeResponse
 	IDExchangeRequest
 	IDExchangeResponse
+	TransactionRequest
+	TransactionResponse
 )

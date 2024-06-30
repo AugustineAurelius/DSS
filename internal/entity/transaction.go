@@ -1,6 +1,10 @@
 package entity
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/AugustineAurelius/DSS/pkg/crypto/ed25519"
+)
 
 type Transaction struct {
 	Timestamp int64
@@ -13,8 +17,8 @@ type Transaction struct {
 }
 
 type RawTransaction struct {
-	Sender   []byte
-	Receiver []byte
+	Sender   []byte //32
+	Receiver []byte //32
 
 	Amount *big.Int
 
@@ -29,7 +33,8 @@ type RawTransaction struct {
 type SignedTransaction struct {
 	Tx *RawTransaction
 
-	Signature []byte //sender public address is hashed by his private key
+	publicKey [ed25519.PublicKeySize]byte
+	Signature [ed25519.SignatureSize]byte //sender public address is hashed by his private key
 }
 
 func (t *Transaction) Reset() {
