@@ -26,9 +26,20 @@ func TestSign(t *testing.T) {
 	msg := public
 	signature := MustSign(private, msg)
 
-	if !Verify(public, msg, signature) {
+	if !Verify(public, signature) {
 		t.Fatal("fail to virify msg")
 
 	}
 
+}
+
+func BenchmarkVerify(b *testing.B) {
+	public, private := New()
+	signature := MustSign(private, public)
+
+	for i := 0; i < b.N; i++ {
+		if !Verify(public, signature) {
+			b.Fatal("fail to virify msg")
+		}
+	}
 }

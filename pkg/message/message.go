@@ -67,3 +67,8 @@ func (p *Payload) toSlice(dst []byte) {
 	copy(dst[3:], p.Body)
 
 }
+
+func (p *Payload) verify() bool {
+
+	return false
+}

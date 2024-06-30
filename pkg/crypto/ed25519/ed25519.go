@@ -3,8 +3,10 @@ package ed25519
 import (
 	"crypto"
 	"crypto/ed25519"
+
+	hashbuffer "github.com/AugustineAurelius/DSS/pkg/crypto/hash_buffer"
+
 	"crypto/rand"
-	"crypto/sha512"
 	"io"
 )
 
@@ -20,8 +22,7 @@ const (
 )
 
 var (
-	opts     = &ed25519.Options{Hash: crypto.SHA512}
-	hashFunc = sha512.Sum512
+	opts = &ed25519.Options{Hash: crypto.SHA512}
 )
 
 func New() (ed25519.PublicKey, ed25519.PrivateKey) {
@@ -40,9 +41,10 @@ func New() (ed25519.PublicKey, ed25519.PrivateKey) {
 }
 
 func MustSign(private ed25519.PrivateKey, msg []byte) []byte {
-	hashOfMsg := hashFunc(msg)
 
-	signature, err := private.Sign(rand.Reader, hashOfMsg[:], opts)
+	hash := hashbuffer.Default.Hash(msg)
+
+	signature, err := private.Sign(rand.Reader, hash[:], opts)
 	if err != nil {
 		panic(err)
 	}
@@ -50,8 +52,8 @@ func MustSign(private ed25519.PrivateKey, msg []byte) []byte {
 	return signature
 }
 
-func Verify(public ed25519.PublicKey, msg, signature []byte) bool {
-	hashOfMsg := hashFunc(msg)
-
-	return nil == ed25519.VerifyWithOptions(public, hashOfMsg[:], signature, opts)
+// encoded signature should be equal to public key
+func Verify(public, signature []byte) bool {
+	hash := hashbuffer.Default.Hash(public)
+	return nil == ed25519.VerifyWithOptions(public, hash[:], signature, opts)
 }
