@@ -1,4 +1,4 @@
-package hashbuffer
+package hash
 
 import (
 	"encoding/binary"
@@ -12,6 +12,7 @@ type digest512 struct {
 	len uint64
 }
 
+// TODO: name and package just crypto
 func Hash512(p []byte) [64]byte {
 
 	b := digest512{}

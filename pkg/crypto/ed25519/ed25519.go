@@ -7,6 +7,8 @@ import (
 
 	"crypto/rand"
 	"io"
+
+	"github.com/AugustineAurelius/DSS/pkg/crypto/hash"
 )
 
 const (
@@ -20,11 +22,30 @@ const (
 	SeedSize = 32
 )
 
+type PrivateKey struct{ ed25519.PrivateKey }
+
+type PublicKey = ed25519.PublicKey
+
+func (pk PrivateKey) PublicKey() []byte {
+	return pk.PrivateKey[32:]
+}
+
+func (pk PrivateKey) Sign(p []byte) [64]byte {
+	hash := hash.Hash512(p)
+
+	signature, err := pk.PrivateKey.Sign(rand.Reader, hash[:], opts)
+	if err != nil {
+		panic(err)
+	}
+
+	return [64]byte(signature)
+}
+
 var (
 	opts = &ed25519.Options{Hash: crypto.SHA512}
 )
 
-func New() (ed25519.PublicKey, ed25519.PrivateKey) {
+func New() (PublicKey, PrivateKey) {
 
 	seed := make([]byte, SeedSize)
 	if _, err := io.ReadFull(rand.Reader, seed); err != nil {
@@ -36,19 +57,14 @@ func New() (ed25519.PublicKey, ed25519.PrivateKey) {
 	publicKey := make([]byte, PublicKeySize)
 	copy(publicKey, privateKey[32:])
 
-	return publicKey, privateKey
+	return publicKey, PrivateKey{privateKey}
 }
 
-func MustSign(private ed25519.PrivateKey, msg []byte) []byte {
+func MustSign(private PrivateKey, msg []byte) []byte {
 
-	hash := sha512.Sum512(msg)
+	signature := private.Sign(msg)
 
-	signature, err := private.Sign(rand.Reader, hash[:], opts)
-	if err != nil {
-		panic(err)
-	}
-
-	return signature
+	return signature[:]
 }
 
 // encoded signature should be equal to public key

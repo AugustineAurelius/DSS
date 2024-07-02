@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/AugustineAurelius/DSS/pkg/codec"
-	merkletree "github.com/AugustineAurelius/DSS/pkg/merkle_tree"
+	"github.com/AugustineAurelius/DSS/pkg/crypto/hash"
 )
 
 type Payload struct {
@@ -50,25 +50,7 @@ func (p *Payload) Reset() {
 }
 
 func (p *Payload) Hash() []byte {
-
-	var hash [32]byte
-
-	tmp := make([]byte, 1+2+p.GetBodyLen())
-	p.toSlice(tmp)
-	merkletree.CalculateHash256(&hash, tmp)
+	hash := hash.Hash512(p.Body)
 
 	return hash[:]
-}
-
-func (p *Payload) toSlice(dst []byte) {
-
-	dst[0] = p.Type
-	copy(dst[1:3], p.Header[:])
-	copy(dst[3:], p.Body)
-
-}
-
-func (p *Payload) verify() bool {
-
-	return false
 }
