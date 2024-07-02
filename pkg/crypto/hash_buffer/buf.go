@@ -1,45 +1,22 @@
 package hashbuffer
 
 import (
-	"crypto"
 	"encoding/binary"
 	"math/bits"
-	"sync"
 )
 
-func init() {
-	Default.reset()
+type digest512 struct {
+	h   [8]uint64
+	x   [128]byte
+	nx  int
+	len uint64
 }
 
-var Default = &Buf512{
-	function: crypto.SHA512,
-	m:        sync.Mutex{},
-}
+func Hash512(p []byte) [64]byte {
 
-type Buf512 struct {
-	h        [8]uint64
-	x        [128]byte
-	nx       int
-	len      uint64
-	function crypto.Hash
-	digest   [64]byte
+	b := digest512{}
 
-	m sync.Mutex
-}
-
-func New() *Buf512 {
-	b := &Buf512{
-		function: crypto.SHA512,
-		m:        sync.Mutex{},
-	}
-	b.reset()
-	return b
-}
-
-func (b *Buf512) Hash(p []byte) [64]byte {
-	b.m.Lock()
-	defer b.m.Unlock()
-	defer b.reset()
+	b.init()
 
 	b.write(p)
 
@@ -64,24 +41,21 @@ func (b *Buf512) Hash(p []byte) [64]byte {
 	binary.BigEndian.PutUint64(padlen[t+8:], l)
 	b.write(padlen)
 
-	if b.nx != 0 {
-		panic("d.nx != 0")
-	}
+	var digest [64]byte
 
-	binary.BigEndian.PutUint64(b.digest[0:], b.h[0])
-	binary.BigEndian.PutUint64(b.digest[8:], b.h[1])
-	binary.BigEndian.PutUint64(b.digest[16:], b.h[2])
-	binary.BigEndian.PutUint64(b.digest[24:], b.h[3])
-	binary.BigEndian.PutUint64(b.digest[32:], b.h[4])
-	binary.BigEndian.PutUint64(b.digest[40:], b.h[5])
-	binary.BigEndian.PutUint64(b.digest[48:], b.h[6])
-	binary.BigEndian.PutUint64(b.digest[56:], b.h[7])
+	binary.BigEndian.PutUint64(digest[0:], b.h[0])
+	binary.BigEndian.PutUint64(digest[8:], b.h[1])
+	binary.BigEndian.PutUint64(digest[16:], b.h[2])
+	binary.BigEndian.PutUint64(digest[24:], b.h[3])
+	binary.BigEndian.PutUint64(digest[32:], b.h[4])
+	binary.BigEndian.PutUint64(digest[40:], b.h[5])
+	binary.BigEndian.PutUint64(digest[48:], b.h[6])
+	binary.BigEndian.PutUint64(digest[56:], b.h[7])
 
-	return b.digest
-
+	return digest
 }
 
-func (b *Buf512) reset() {
+func (b *digest512) init() {
 	b.h[0] = 0x6a09e667f3bcc908
 	b.h[1] = 0xbb67ae8584caa73b
 	b.h[2] = 0x3c6ef372fe94f82b
@@ -90,12 +64,9 @@ func (b *Buf512) reset() {
 	b.h[5] = 0x9b05688c2b3e6c1f
 	b.h[6] = 0x1f83d9abfb41bd6b
 	b.h[7] = 0x5be0cd19137e2179
-	b.nx = 0
-	b.len = 0
-	b.digest = [64]byte{}
 }
 
-func (b *Buf512) write(p []byte) (nn int, err error) {
+func (b *digest512) write(p []byte) (nn int, err error) {
 	nn = len(p)
 	b.len += uint64(nn)
 	if b.nx > 0 {
@@ -119,8 +90,9 @@ func (b *Buf512) write(p []byte) (nn int, err error) {
 
 }
 
-func blockGeneric(dig *Buf512, p []byte) {
+func blockGeneric(dig *digest512, p []byte) {
 	var w [80]uint64
+
 	h0, h1, h2, h3, h4, h5, h6, h7 := dig.h[0], dig.h[1], dig.h[2], dig.h[3], dig.h[4], dig.h[5], dig.h[6], dig.h[7]
 	for len(p) >= 128 {
 		for i := 0; i < 16; i++ {

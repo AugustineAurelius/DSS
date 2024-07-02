@@ -3,8 +3,7 @@ package ed25519
 import (
 	"crypto"
 	"crypto/ed25519"
-
-	hashbuffer "github.com/AugustineAurelius/DSS/pkg/crypto/hash_buffer"
+	"crypto/sha512"
 
 	"crypto/rand"
 	"io"
@@ -42,7 +41,7 @@ func New() (ed25519.PublicKey, ed25519.PrivateKey) {
 
 func MustSign(private ed25519.PrivateKey, msg []byte) []byte {
 
-	hash := hashbuffer.Default.Hash(msg)
+	hash := sha512.Sum512(msg)
 
 	signature, err := private.Sign(rand.Reader, hash[:], opts)
 	if err != nil {
@@ -54,6 +53,6 @@ func MustSign(private ed25519.PrivateKey, msg []byte) []byte {
 
 // encoded signature should be equal to public key
 func Verify(public, signature []byte) bool {
-	hash := hashbuffer.Default.Hash(public)
+	hash := sha512.Sum512(public)
 	return nil == ed25519.VerifyWithOptions(public, hash[:], signature, opts)
 }
